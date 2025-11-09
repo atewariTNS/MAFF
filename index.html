@@ -89,7 +89,6 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
 
 <section class="block" aria-label="Pledge wall">
   <div class="grid" id="pledges" role="list">
-    <!-- Cards injected here -->
   </div>
 </section>
 
@@ -127,13 +126,10 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
 
 <section class="block" aria-label="Impact tracker">
   <div class="panel">
-    <h2 style="margin:0 0 6px">Impact Tracker</h2>
-    <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSFaeGFD5VbYHWKILOPxiyFWO_sPM8ruKMhVBmiODtOkHfLra7ZZWSXw1yYdAOJj3kd4xiakTXROrLd/pubhtml" width="100%" height="100%" frameborder="0"></iframe>
-    <div id="embedHolder" style="aspect-ratio:16/9;background:#0a0a0a;border:1px solid var(--line);border-radius:12px;display:grid;place-items:center;margin-top:8px;padding:8px;text-align:center">
-      <div>
-        <p style="margin:0 0 6px">Embed your live Google Sheet here.</p>
-        <code>&lt;iframe src="PASTE_PUBLISHED_SHEET_URL" width="100%" height="100%" frameborder="0"&gt;&lt;/iframe&gt;</code>
-      </div>
+    <h2 style="margin:0 0 6px">Impact Tracker (live)</h2>
+    <div class="hint">Live embed from your published Google Sheet.</div>
+    <div id="embedHolder" style="aspect-ratio:16/9;background:#0a0a0a;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:8px">
+      <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSFaeGFD5VbYHWKILOPxiyFWO_sPM8ruKMhVBmiODtOkHfLra7ZZWSXw1yYdAOJj3kd4xiakTXROrLd/pubhtml" width="100%" height="100%" frameborder="0"></iframe>
     </div>
   </div>
 </section>
@@ -175,8 +171,10 @@ const pledgeCountEl = $("#pledgeCount");
 let pledges = [...starterPledges];
 
 function renderPledges() {
-  const q = $("#search").value.toLowerCase().trim();
-  const role = $("#roleFilter").value;
+  const qEl = document.getElementById("search");
+  const q = qEl ? qEl.value.toLowerCase().trim() : "";
+  const roleEl = document.getElementById("roleFilter");
+  const role = roleEl ? roleEl.value : "";
   pledgesEl.innerHTML = "";
   pledges
     .filter(p => (role ? p.role === role : true))
@@ -197,39 +195,61 @@ function renderPledges() {
 }
 renderPledges();
 
-$("#submit").addEventListener("click", ()=>{
-  const name = $("#name").value.trim();
-  const role = $("#role").value;
-  const text = $("#pledge").value.trim();
-  if(!text) { alert("Please enter a clear, one-line pledge."); return; }
-  pledges.unshift({name, role, text});
-  $("#pledge").value = ""; $("#name").value=""; $("#role").value="";
-  renderPledges();
-  window.scrollTo({top:0, behavior:"smooth"});
-});
+const submitBtn = document.getElementById("submit");
+if(submitBtn){
+  submitBtn.addEventListener("click", ()=>{
+    const nameEl = document.getElementById("name");
+    const roleEl = document.getElementById("role");
+    const pledgeEl = document.getElementById("pledge");
+    const name = nameEl ? nameEl.value.trim() : "";
+    const role = roleEl ? roleEl.value : "";
+    const text = pledgeEl ? pledgeEl.value.trim() : "";
+    if(!text) { alert("Please enter a clear, one-line pledge."); return; }
+    pledges.unshift({name, role, text});
+    if(pledgeEl) pledgeEl.value = "";
+    if(nameEl) nameEl.value = "";
+    if(roleEl) roleEl.value = "";
+    renderPledges();
+    window.scrollTo({top:0, behavior:"smooth"});
+  });
+}
 
-$("#reset").addEventListener("click", ()=>{
-  $("#pledge").value = ""; $("#name").value=""; $("#role").value="";
-});
+const resetBtn = document.getElementById("reset");
+if(resetBtn){
+  resetBtn.addEventListener("click", ()=>{
+    const pledgeEl = document.getElementById("pledge");
+    const nameEl = document.getElementById("name");
+    const roleEl = document.getElementById("role");
+    if(pledgeEl) pledgeEl.value="";
+    if(nameEl) nameEl.value="";
+    if(roleEl) roleEl.value="";
+  });
+}
 
-$("#search").addEventListener("input", renderPledges);
-$("#roleFilter").addEventListener("change", renderPledges);
-$("#clearSearch").addEventListener("click", ()=>{ $("#search").value=""; renderPledges(); });
+const searchEl = document.getElementById("search");
+if(searchEl) searchEl.addEventListener("input", renderPledges);
+const roleFilterEl = document.getElementById("roleFilter");
+if(roleFilterEl) roleFilterEl.addEventListener("change", renderPledges);
+const clearBtn = document.getElementById("clearSearch");
+if(clearBtn) clearBtn.addEventListener("click", ()=>{ const s=document.getElementById("search"); if(s) s.value=""; renderPledges(); });
 
 // CSV export (client-side)
-$("#exportCsv").addEventListener("click", ()=>{
-  const rows = [["name","role","pledge"]].concat(pledges.map(p=>[p.name||"", p.role||"", p.text.replace(/\n/g," ")]));
-  const csv = rows.map(r=>r.map(x=>`"${(x||"").replace(/"/g,'""')}"`).join(",")).join("\n");
-  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "pledges.csv";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-});
+const exportBtn = document.getElementById("exportCsv");
+if(exportBtn){
+  exportBtn.addEventListener("click", ()=>{
+    const rows = [["name","role","pledge"]].concat(pledges.map(p=>[p.name||"", p.role||"", p.text.replace(/\n/g," ")]));
+    const csv = rows.map(r=>r.map(x=>`"{(x||"").replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "pledges.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+}
 </script>
 </body>
 </html>
